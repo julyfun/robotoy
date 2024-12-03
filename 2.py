@@ -3,6 +3,7 @@
 """
 
 import matplotlib.pyplot as plt
+import time
 import numpy as np
 import scipy.optimize as opt
 
@@ -54,8 +55,8 @@ def itpltn_best_v_a(
     print(f"    a0: {a0}")
     print(f"    v_tar: {v_tar}")
     v0 -= v_tar
-    v_max = np.max([v_abs_max - v_tar, arr(0)])
-    v_min = np.min([-v_abs_max - v_tar, arr(0)])
+    v_max = np.maximum(v_abs_max - v_tar, 0)
+    v_min = np.minimum(-v_abs_max - v_tar, 0)
 
     # v_tar = np.where(
     #     sign(v_tar) == sign(d_h),
@@ -67,9 +68,7 @@ def itpltn_best_v_a(
     # 以下基于 -v_tar 坐标
     v_sug = limited_by(np.sqrt(2.0 * a_abs_max * d_h), v_max)
     print(f"    v_sug: {v_sug}")
-    a_limited = limited_by(
-        (v_sug - v0) * f, a_abs_max * i_dont_know_wtf_is_this
-    )  # [TODO] check tmp
+    a_limited = limited_by((v_sug - v0) * f, a_abs_max * i_dont_know_wtf_is_this)
     print(f"    a_limited: {a_limited}")
     return a_limited * dir
 
@@ -101,8 +100,8 @@ def itpltn_best_v_j(
 
     # [minus v_tar.begin]
     v0 -= v_tar
-    v_max = np.max([v_abs_max - v_tar, arr(0)])
-    v_min = np.min([-v_abs_max - v_tar, arr(0)])
+    v_max = np.maximum(v_abs_max - v_tar, 0)
+    v_min = np.minimum(-v_abs_max - v_tar, 0)
     # d -> v_sug, a_sug
 
     @np.vectorize
@@ -188,7 +187,6 @@ def itpltn_best_v_j(
 
     print(f"v_sug: {v_sug}")
     print(f"a_sug: {a_sug}")
-    # [TODO] v_sug * 0.5?
     j = itpltn_best_v_a(
         v0,
         a0,
@@ -219,19 +217,25 @@ class ItpState:
         # [hydra]
 
     # [TODO] 注意传入的 x_tar 可能发生了 2pi 突跃，取决于 ik
-    # [TODO] 一定要加入变化的 x_tar
-    def interpolate(self, x_tar, v_tar, points_needed):
+    def interpolate(self, x_tar, v_tar, points_needed, first_delta_t=0):
         ...
         ret = []
+        st = time.time()
         for i in range(points_needed):
+            print(f"time: {time.time() - st}")
+            st = time.time()
             print("---")
             print(f"t: {i * 1.0 / self.fps}")
+            t_tar = np.ones_like(x_tar) * (first_delta_t + i / self.fps)
+            x_tar_t = x_tar + v_tar * t_tar
+            v_tar_t = v_tar
+
             j = itpltn_best_v_j(
                 self.pre_sent_x,
                 self.pre_sent_v,
                 self.pre_sent_a,
-                x_tar,
-                v_tar,
+                x_tar_t,
+                v_tar_t,
                 self.fps,
                 self.v_max,
                 self.a_max,
@@ -250,16 +254,16 @@ class ItpState:
             self.pre_sent_v = so_v
             self.pre_sent_x = so_x
 
-        return np.array(ret)
+        return ret
 
 
 def test1():
     # 初始化参数
     x0 = np.array([2, 2, 2, 2, 2, 2], dtype=np.float32)
     v0 = np.array([1, -1, 2, -2, 0, 0], dtype=np.float32)
-    v_max = np.array([3.0, 3.0, 3.0, 3.0, 3.0, 3.0], dtype=np.float32)
-    a_max = np.array([40.0, 40.0, 40.0, 4.0, 4.0, 4.0], dtype=np.float32)
-    j_max = np.array([400, 400, 400, 400, 400, 400], dtype=np.float32)
+    v_max = np.array([3.0, 3.0, 3.0, 3.0, 300.0, 300.0], dtype=np.float32)
+    a_max = np.array([40.0, 40.0, 400.0, 0.8, 400.0, 4.0], dtype=np.float32)
+    j_max = np.array([400, 4000, 400, 400, 400, 400], dtype=np.float32)
     # x0 = np.array([2], dtype=np.float32)
     # v_max = np.array([3.0], dtype=np.float32)
     # a_max = np.array([4.0], dtype=np.float32)
@@ -272,13 +276,13 @@ def test1():
     # 目标位置和速度
     x_tar = np.array([1.1, 2.3, 2.4, 2.5, 2.6, 2.7], dtype=np.float32)
     v_tar = np.array([0.0] * 6, dtype=np.float32)
-    points_needed = 0.68 * fps
+    points_needed = int(1.2 * fps)
 
     # 调用 interpolate 方法
-    result = itp_state.interpolate(x_tar, v_tar, points_needed)
+    result = itp_state.interpolate(x_tar, v_tar, points_needed, first_delta_t=0.0)
 
     # 提取插值结果
-    x_vals = np.array(result)
+    x_vals = np.array(result[:, 0])
     t = np.arange(0, points_needed) / fps
 
     # 绘制结果
@@ -298,14 +302,14 @@ def test1():
 def test2():
     x0 = arr(0)
     v0 = arr(-2)
-    v_max = arr(3)
+    v_max = arr(5)
     a_max = arr(40)
     j_max = arr(400)
     fps = 300.0
     itp_state = ItpState(x0, v0, v_max, a_max, j_max, fps)
     x_tar = arr(2)
-    v_tar = arr(0)
-    points_needed = int(2.0 * fps)
+    v_tar = arr(1)
+    points_needed = int(1.0 * fps)
     res = itp_state.interpolate(x_tar, v_tar, points_needed)
 
     x_vals = np.array(res[:, 0])
@@ -344,7 +348,79 @@ def test2():
 
     plot_subplots(t, data, titles, y_labels)
 
-    # 运行测试函数
+
+def test3():
+    x0 = arr(0)
+    v0 = arr(0)
+    v_max = arr(2)
+    a_max = arr(8)
+    j_max = arr(500)
+    fps = 300.0
+    itp_state = ItpState(x0, v0, v_max, a_max, j_max, fps)
+
+    # 2hz 振幅 1m 的正弦序列，时间间隔 1 / 30s，持续 2s
+    t_samples = np.arange(0, 4, 1 / 30)
+    freq = 1
+    amp = 0.15
+    x_samples = np.sin(2 * np.pi * freq * t_samples) * amp
+    v_samples = 2 * np.pi * freq * np.cos(2 * np.pi * freq * t_samples) * amp
+    # v_samples = np.zeros_like(x_samples)
+    last_itpltn_t = 0
+    res = []
+    t_vals = []
+    for x, v, t in zip(x_samples, v_samples, t_samples):
+        # 插到 t
+        points_needed = int((t - last_itpltn_t) * fps)
+        res += itp_state.interpolate(
+            arr(x), arr(v), points_needed, first_delta_t=(last_itpltn_t - t)
+        )
+        t_vals += [last_itpltn_t + i / fps for i in range(points_needed)]
+        last_itpltn_t += points_needed / fps
+
+    res = np.array(res)
+    x_vals = np.array(res[:, 0])
+    v_vals = np.array(res[:, 1])
+    a_vals = np.array(res[:, 2])
+    j_vals = np.array(res[:, 3])
+
+    def plot_subplots(t, data, titles, y_labels, extra_data=None, extra_t=None):
+        plt.figure(figsize=(12, 8))
+        for i, (data_vals, title, y_label) in enumerate(zip(data, titles, y_labels)):
+            plt.subplot(4, 1, i + 1)
+            for j in range(data_vals.shape[1]):
+                plt.plot(
+                    t,
+                    data_vals[:, j],
+                    marker="o",
+                    linestyle="-",
+                    label=f"Dimension {j+1}",
+                )
+            if extra_data is not None and extra_t is not None and i < len(extra_data):
+                plt.plot(
+                    extra_t,
+                    extra_data[i],
+                    marker="x",
+                    linestyle="--",
+                    label="Sample Data",
+                )
+            plt.axhline(
+                0, color="gray", linestyle="--", linewidth=0.5
+            )  # 添加 y=0 的水平线
+            plt.title(title)
+            plt.xlabel("Time (s)")
+            plt.ylabel(y_label)
+            plt.legend()
+            plt.grid(True)
+        plt.tight_layout()
+        plt.show()
+
+    data = [x_vals, v_vals, a_vals, j_vals]
+    titles = ["X Position", "Velocity", "Acceleration", "Jerk"]
+    y_labels = ["X Position", "Velocity", "Acceleration", "Jerk"]
+    extra_data = [x_samples, v_samples]
+    extra_t = t_samples
+
+    plot_subplots(t_vals, data, titles, y_labels, extra_data, extra_t)
 
 
-test2()
+test3()
