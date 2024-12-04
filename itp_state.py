@@ -1,11 +1,10 @@
-"""
-- a 平稳振荡
-"""
-
 import matplotlib.pyplot as plt
 import time
 import numpy as np
 import scipy.optimize as opt
+from loguru import logger
+
+m_logger = logger.bind(name="itp_state")
 
 Flt = np.float32
 
@@ -49,11 +48,11 @@ def itpltn_best_v_a(
     v0 *= dir
     a0 *= dir
     v_tar *= dir
-    print(f"    ***")
-    print(f"    d_h: {d_h}")
-    print(f"    v0: {v0}")
-    print(f"    a0: {a0}")
-    print(f"    v_tar: {v_tar}")
+    m_logger.info(f"    ***")
+    m_logger.info(f"    d_h: {d_h}")
+    m_logger.info(f"    v0: {v0}")
+    m_logger.info(f"    a0: {a0}")
+    m_logger.info(f"    v_tar: {v_tar}")
     v0 -= v_tar
     v_max = np.maximum(v_abs_max - v_tar, 0)
     v_min = np.minimum(-v_abs_max - v_tar, 0)
@@ -64,12 +63,12 @@ def itpltn_best_v_a(
     #     * np.min([np.abs(v_tar), np.sqrt(v0**2 + 2.0 * a_abs_max * np.abs(d_h))]),
     #     0.0,
     # )
-    print(f"    v_tar: {v_tar}")
+    m_logger.info(f"    v_tar: {v_tar}")
     # 以下基于 -v_tar 坐标
     v_sug = limited_by(np.sqrt(2.0 * a_abs_max * d_h), v_max)
-    print(f"    v_sug: {v_sug}")
+    m_logger.info(f"    v_sug: {v_sug}")
     a_limited = limited_by((v_sug - v0) * f, a_abs_max * i_dont_know_wtf_is_this)
-    print(f"    a_limited: {a_limited}")
+    m_logger.info(f"    a_limited: {a_limited}")
     return a_limited * dir
 
 
@@ -89,9 +88,9 @@ def itpltn_best_v_j(
     v_tar = np.copy(v_tar)
     # d half t if v & a unchanged
     d_h = x_tar - (x0 + x0 + v0 / f + 0.5 * a0 / f**2) / 2
-    print(f"d_h: {d_h}")
-    print(f"v0: {v0}")
-    print(f"a0: {a0}")
+    m_logger.info(f"d_h: {d_h}")
+    m_logger.info(f"v0: {v0}")
+    m_logger.info(f"a0: {a0}")
     dir = np.where(d_h < 0, -1, 1)
     d_h *= dir
     v0 *= dir
@@ -119,7 +118,7 @@ def itpltn_best_v_j(
             t1 = np.sqrt(v_m1 / j_m)
             d1 = j_m * (v_m1 / j_m) ** (3 / 2) / 6
             d2 = v_m1 * np.sqrt(v_m1 / j_m)
-            print(f"d1: {d1} | d2: {d2}")
+            m_logger.info(f"d1: {d1} | d2: {d2}")
             if d >= d2:
                 return v_m1, 0
             if d >= d1:
@@ -141,7 +140,7 @@ def itpltn_best_v_j(
             t_sug = 6 ** (1 / 3) * (d / j_m) ** (1 / 3)
             v_sug = j_m * t_sug**2 / 2
             a_sug = j_m * t_sug
-            print(f"t_sug: {t_sug}")
+            m_logger.info(f"t_sug: {t_sug}")
             return v_sug, a_sug
         t1 = a_m / j_m
         t2 = v_m1 / a_m
@@ -185,8 +184,8 @@ def itpltn_best_v_j(
     v_sug, a_sug = sug_inv_t(d_h, v0, a0, v_max, a_abs_max, j_abs_max)
     v_sug, a_sug = v_sug, -a_sug  # 反向积分
 
-    print(f"v_sug: {v_sug}")
-    print(f"a_sug: {a_sug}")
+    m_logger.info(f"v_sug: {v_sug}")
+    m_logger.info(f"a_sug: {a_sug}")
     j = itpltn_best_v_a(
         v0,
         a0,
@@ -202,30 +201,65 @@ def itpltn_best_v_j(
 
 
 class ItpState:
-    def __init__(self, x0, v0, v_max, a_max, j_max, fps):
-        ...
-        self.dof = len(x0)
-        self.v_max = v_max
-        self.a_max = a_max
-        self.j_max = j_max
-        self.fps = fps
-        self.pre_sent_x = x0
-        self.pre_sent_v = v0
-        self.pre_sent_a = np.array([0.0] * self.dof, dtype=Flt)
-        self.pre_sent_j = np.array([0.0] * self.dof, dtype=Flt)
+    def __init__(self):
+        self.v_max = None
+        self.a_max = None
+        self.j_max = None
+        self.fps = None
+        self.pre_sent_x = None
+        self.pre_sent_v = None
+        self.pre_sent_a = None
+        self.pre_sent_j = None
 
+    def init(self, x0=None, v0=None, v_max=None, a_max=None, j_max=None, fps=None):
+        params = {
+            "pre_sent_x": x0,
+            "pre_sent_v": v0,
+            "v_max": v_max,
+            "a_max": a_max,
+            "j_max": j_max,
+            "fps": fps,
+        }
+        for attr, value in params.items():
+            if value is not None:
+                setattr(self, attr, value)
+        if any(
+            map(
+                lambda x: x is not None,
+                [x0, v0],
+            )
+        ):
+            shape = x0 if x0 is not None else v0
+            self.pre_sent_a = np.zeros_like(shape, dtype=Flt)
+            self.pre_sent_j = np.zeros_like(shape, dtype=Flt)
         # [hydra]
 
     # [TODO] 注意传入的 x_tar 可能发生了 2pi 突跃，取决于 ik
     def interpolate(self, x_tar, v_tar, points_needed, first_delta_t=0):
-        ...
+        # if any none
+        if any(
+            map(
+                lambda x: x is None,
+                [
+                    self.v_max,
+                    self.a_max,
+                    self.j_max,
+                    self.fps,
+                    self.pre_sent_x,
+                    self.pre_sent_v,
+                    self.pre_sent_a,
+                    self.pre_sent_j,
+                ],
+            )
+        ):
+            raise ValueError("ItpState not initialized")
         ret = []
         st = time.time()
         for i in range(points_needed):
-            print(f"time: {time.time() - st}")
+            m_logger.info(f"[ItpState] itp time: {time.time() - st}")
             st = time.time()
-            print("---")
-            print(f"t: {i * 1.0 / self.fps}")
+            m_logger.info("---")
+            m_logger.info(f"t: {i * 1.0 / self.fps}")
             t_tar = np.ones_like(x_tar) * (first_delta_t + i / self.fps)
             x_tar_t = x_tar + v_tar * t_tar
             v_tar_t = v_tar
@@ -244,10 +278,10 @@ class ItpState:
             so_a = self.pre_sent_a + j / self.fps
             so_v = self.pre_sent_v + so_a / self.fps
             so_x = self.pre_sent_x + so_v / self.fps
-            print(f"so_x: {so_x}")
-            print(f"so_v: {so_v}")
-            print(f"so_a: {so_a}")
-            print(f"j: {j}")
+            m_logger.info(f"so_x: {so_x}")
+            m_logger.info(f"so_v: {so_v}")
+            m_logger.info(f"so_a: {so_a}")
+            m_logger.info(f"j: {j}")
             ret.append((so_x, so_v, so_a, j))
             self.pre_sent_j = j
             self.pre_sent_a = so_a
@@ -271,7 +305,8 @@ def test1():
     fps = 300.0
 
     # 创建 ItpState 对象
-    itp_state = ItpState(x0, v0, v_max, a_max, j_max, fps)
+    itp_state = ItpState()
+    itp_state.init(x0, v0, v_max, a_max, j_max, fps)
 
     # 目标位置和速度
     x_tar = np.array([1.1, 2.3, 2.4, 2.5, 2.6, 2.7], dtype=np.float32)
@@ -311,6 +346,7 @@ def test2():
     v_tar = arr(1)
     points_needed = int(1.0 * fps)
     res = itp_state.interpolate(x_tar, v_tar, points_needed)
+    res = np.array(res)
 
     x_vals = np.array(res[:, 0])
     v_vals = np.array(res[:, 1])
@@ -347,80 +383,3 @@ def test2():
     y_labels = ["X Position", "Velocity", "Acceleration", "Jerk"]
 
     plot_subplots(t, data, titles, y_labels)
-
-
-def test3():
-    x0 = arr(0)
-    v0 = arr(0)
-    v_max = arr(2)
-    a_max = arr(8)
-    j_max = arr(500)
-    fps = 300.0
-    itp_state = ItpState(x0, v0, v_max, a_max, j_max, fps)
-
-    # 2hz 振幅 1m 的正弦序列，时间间隔 1 / 30s，持续 2s
-    t_samples = np.arange(0, 4, 1 / 30)
-    freq = 1
-    amp = 0.15
-    x_samples = np.sin(2 * np.pi * freq * t_samples) * amp
-    v_samples = 2 * np.pi * freq * np.cos(2 * np.pi * freq * t_samples) * amp
-    # v_samples = np.zeros_like(x_samples)
-    last_itpltn_t = 0
-    res = []
-    t_vals = []
-    for x, v, t in zip(x_samples, v_samples, t_samples):
-        # 插到 t
-        points_needed = int((t - last_itpltn_t) * fps)
-        res += itp_state.interpolate(
-            arr(x), arr(v), points_needed, first_delta_t=(last_itpltn_t - t)
-        )
-        t_vals += [last_itpltn_t + i / fps for i in range(points_needed)]
-        last_itpltn_t += points_needed / fps
-
-    res = np.array(res)
-    x_vals = np.array(res[:, 0])
-    v_vals = np.array(res[:, 1])
-    a_vals = np.array(res[:, 2])
-    j_vals = np.array(res[:, 3])
-
-    def plot_subplots(t, data, titles, y_labels, extra_data=None, extra_t=None):
-        plt.figure(figsize=(12, 8))
-        for i, (data_vals, title, y_label) in enumerate(zip(data, titles, y_labels)):
-            plt.subplot(4, 1, i + 1)
-            for j in range(data_vals.shape[1]):
-                plt.plot(
-                    t,
-                    data_vals[:, j],
-                    marker="o",
-                    linestyle="-",
-                    label=f"Dimension {j+1}",
-                )
-            if extra_data is not None and extra_t is not None and i < len(extra_data):
-                plt.plot(
-                    extra_t,
-                    extra_data[i],
-                    marker="x",
-                    linestyle="--",
-                    label="Sample Data",
-                )
-            plt.axhline(
-                0, color="gray", linestyle="--", linewidth=0.5
-            )  # 添加 y=0 的水平线
-            plt.title(title)
-            plt.xlabel("Time (s)")
-            plt.ylabel(y_label)
-            plt.legend()
-            plt.grid(True)
-        plt.tight_layout()
-        plt.show()
-
-    data = [x_vals, v_vals, a_vals, j_vals]
-    titles = ["X Position", "Velocity", "Acceleration", "Jerk"]
-    y_labels = ["X Position", "Velocity", "Acceleration", "Jerk"]
-    extra_data = [x_samples, v_samples]
-    extra_t = t_samples
-
-    plot_subplots(t_vals, data, titles, y_labels, extra_data, extra_t)
-
-
-test3()
