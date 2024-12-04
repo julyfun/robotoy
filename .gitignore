@@ -4,3 +4,6 @@
 *.swp
 .zed
 __pycache__
+1
+build
+.cache

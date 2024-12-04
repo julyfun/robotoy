@@ -1,4 +1,3 @@
-import matplotlib.pyplot as plt
 import time
 import numpy as np
 import scipy.optimize as opt
@@ -191,7 +190,7 @@ def itpltn_best_v_j(
         a0,
         np.zeros_like(x0),
         v_sug,
-        a_sug,
+        a_sug * np.clip(v0 / v_sug, 0.5, 1),
         f,
         a_abs_max,
         j_abs_max,
@@ -256,7 +255,7 @@ class ItpState:
         ret = []
         st = time.time()
         for i in range(points_needed):
-            m_logger.info(f"[ItpState] itp time: {time.time() - st}")
+            m_logger.info(f"[ItpState] itp time: {(time.time() - st) * 1000}")
             st = time.time()
             m_logger.info("---")
             m_logger.info(f"t: {i * 1.0 / self.fps}")
@@ -289,97 +288,3 @@ class ItpState:
             self.pre_sent_x = so_x
 
         return ret
-
-
-def test1():
-    # 初始化参数
-    x0 = np.array([2, 2, 2, 2, 2, 2], dtype=np.float32)
-    v0 = np.array([1, -1, 2, -2, 0, 0], dtype=np.float32)
-    v_max = np.array([3.0, 3.0, 3.0, 3.0, 300.0, 300.0], dtype=np.float32)
-    a_max = np.array([40.0, 40.0, 400.0, 0.8, 400.0, 4.0], dtype=np.float32)
-    j_max = np.array([400, 4000, 400, 400, 400, 400], dtype=np.float32)
-    # x0 = np.array([2], dtype=np.float32)
-    # v_max = np.array([3.0], dtype=np.float32)
-    # a_max = np.array([4.0], dtype=np.float32)
-    # j_max = np.array([400], dtype=np.float32)
-    fps = 300.0
-
-    # 创建 ItpState 对象
-    itp_state = ItpState()
-    itp_state.init(x0, v0, v_max, a_max, j_max, fps)
-
-    # 目标位置和速度
-    x_tar = np.array([1.1, 2.3, 2.4, 2.5, 2.6, 2.7], dtype=np.float32)
-    v_tar = np.array([0.0] * 6, dtype=np.float32)
-    points_needed = int(1.2 * fps)
-
-    # 调用 interpolate 方法
-    result = itp_state.interpolate(x_tar, v_tar, points_needed, first_delta_t=0.0)
-
-    # 提取插值结果
-    x_vals = np.array(result[:, 0])
-    t = np.arange(0, points_needed) / fps
-
-    # 绘制结果
-    plt.figure(figsize=(12, 8))
-    for i in range(x_vals.shape[1]):
-        plt.plot(
-            t, x_vals[:, i][:], marker="o", linestyle="-", label=f"Dimension {i+1}"
-        )
-    plt.title("Interpolation Path")
-    plt.xlabel("Time (s)")
-    plt.ylabel("X Position")
-    plt.legend()
-    plt.grid(True)
-    plt.show()
-
-
-def test2():
-    x0 = arr(0)
-    v0 = arr(-2)
-    v_max = arr(5)
-    a_max = arr(40)
-    j_max = arr(400)
-    fps = 300.0
-    itp_state = ItpState(x0, v0, v_max, a_max, j_max, fps)
-    x_tar = arr(2)
-    v_tar = arr(1)
-    points_needed = int(1.0 * fps)
-    res = itp_state.interpolate(x_tar, v_tar, points_needed)
-    res = np.array(res)
-
-    x_vals = np.array(res[:, 0])
-    v_vals = np.array(res[:, 1])
-    a_vals = np.array(res[:, 2])
-    j_vals = np.array(res[:, 3])
-    t = np.arange(0, points_needed) / fps
-
-    def plot_subplots(t, data, titles, y_labels):
-        plt.figure(figsize=(12, 8))
-        for i, (data_vals, title, y_label) in enumerate(zip(data, titles, y_labels)):
-            plt.subplot(4, 1, i + 1)
-            for j in range(data_vals.shape[1]):
-                plt.plot(
-                    t,
-                    data_vals[:, j],
-                    marker="o",
-                    linestyle="-",
-                    label=f"Dimension {j+1}",
-                )
-                plt.axhline(
-                    0, color="red", linestyle="--", linewidth=2
-                )  # 添加 y=0 的水平线
-
-            plt.title(title)
-            plt.xlabel("Time (s)")
-            plt.ylabel(y_label)
-            plt.legend()
-            plt.grid(True)
-        plt.tight_layout()
-        plt.show()
-
-    data = [x_vals, v_vals, a_vals, j_vals]
-    titles = ["X Position", "Velocity", "Acceleration", "Jerk"]
-    y_labels = ["X Position", "Velocity", "Acceleration", "Jerk"]
-
-    plot_subplots(t, data, titles, y_labels)
