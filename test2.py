@@ -12,7 +12,7 @@ import sys
 
 logger.remove()
 logger.add(
-    sys.stdout, filter=lambda r: r["extra"].get("name") in ["itp_state", "test2"]
+    sys.stdout, filter=lambda r: r["extra"].get("name") in ["itp_statex", "test2"]
 )
 
 logger = logger.bind(name="test2")
