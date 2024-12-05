@@ -14,6 +14,8 @@ namespace itp_state {
 using std::cout;
 using std::endl;
 
+const Flt EPS = 1e-6;
+
 Flt slow_pow(Flt x, int y) {
     Flt result = 1.0;
     for (int i = 0; i < y; ++i) {
@@ -207,7 +209,7 @@ Flt itpltn_best_v_j(
         0.0, // np.zeros_like(x0) 替换为单一值
         v_sug,
         // a_sug * np.clip(v0 / v_sug, xxx, 1), this is very tricky
-        a_sug * std::clamp(v0 / v_sug, 2.0 / 3.0, 1.0),
+        a_sug * (std::abs(v_sug) < EPS ? 1.0 : std::clamp(v0 / v_sug, 2.0 / 3.0, 1.0)),
         f,
         a_abs_max,
         j_abs_max,
@@ -291,6 +293,7 @@ public:
         vector<vector<Flt>> so_a_points(points_needed, vector<Flt>(dims, 0.0));
         vector<vector<Flt>> j_points(points_needed, vector<Flt>(dims, 0.0));
 
+        // 可使用线程池
         for (size_t dim = 0; dim < dims; ++dim) {
             for (int i = 0; i < points_needed; ++i) {
                 Flt current_delta_t = first_delta_t + static_cast<Flt>(i) / this->fps;

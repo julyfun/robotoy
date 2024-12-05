@@ -1,5 +1,6 @@
 import numpy as np
 import time
+import inspect
 from itp_state import arr
 
 from build.itp_state import ItpState
@@ -16,6 +17,7 @@ logger.add(
 )
 
 logger = logger.bind(name="test2")
+logger.info(f"Using ItpState from {inspect.getmodule(ItpState).__file__}")
 
 Flt = np.float64
 
@@ -264,4 +266,4 @@ def test4():
     plot_subplots(t_vals, data, titles, y_labels, extra_data, extra_t)
 
 
-test3()
+test1()
