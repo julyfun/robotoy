@@ -2,9 +2,10 @@
 #include <cmath>
 #include <functional>
 #include <iostream>
+#include <vector>
+
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
-#include <vector>
 
 using std::vector;
 typedef double Flt;
