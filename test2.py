@@ -126,7 +126,7 @@ def test3():
 
     # 2hz 振幅 1m 的正弦序列，时间间隔 1 / 30s，持续 2s
     t_samples = np.arange(0, 10, 1 / 60)
-    freq = 0.5
+    freq = 10.0
     amp = 0.5
     x_samples = np.sin(2 * np.pi * freq * t_samples) * amp
     v_samples = 2 * np.pi * freq * np.cos(2 * np.pi * freq * t_samples) * amp
@@ -206,7 +206,7 @@ def test4():
     itp_state.init(v_max=v_max, a_max=a_max, j_max=j_max, fps=fps)
     itp_state.init(x0=x0, v0=v0)
 
-    t_samples = np.arange(0, 1, 1 / 60)
+    t_samples = np.arange(0, 1.0, 1 / 60)
     x_samples = 2.4 * np.ones_like(t_samples)
     v_samples = np.zeros_like(t_samples)
     last_itpltn_t = 0
@@ -214,6 +214,7 @@ def test4():
     t_vals = []
     for i, (x, v, t) in enumerate(zip(x_samples, v_samples, t_samples)):
         points_needed = int((t - last_itpltn_t) * fps)
+        # logger.info(f"start: {last_itpltn_t}")
         res += itp_state.interpolate(
             arr(x), arr(v), points_needed, first_delta_t=(last_itpltn_t - t)
         )
@@ -266,4 +267,4 @@ def test4():
     plot_subplots(t_vals, data, titles, y_labels, extra_data, extra_t)
 
 
-test1()
+test3()

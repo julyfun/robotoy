@@ -79,13 +79,13 @@ Flt newton_raphson(
 
 std::pair<Flt, Flt> sug_inv_t(Flt d, Flt v0, Flt a0, Flt v_m1, Flt a_m, Flt j_m) {
     if (a_m * a_m >= v_m1 * j_m) {
-        Flt d1 = j_m * std::pow(v_m1 / j_m, 1.5f) / 3.0;
+        Flt d1 = j_m * std::pow(v_m1 / j_m, 1.5) / 3.0;
         Flt d2 = v_m1 * std::sqrt(v_m1 / j_m);
         if (d >= d2) {
             return { v_m1, 0.0 };
         }
         if (d >= d1) {
-            vector<Flt> coe = { j_m * std::pow(v_m1 / j_m, 1.5f) / 3.0,
+            vector<Flt> coe = { j_m * std::pow(v_m1 / j_m, 1.5) / 3.0,
                                 -v_m1,
                                 j_m * std::sqrt(v_m1 / j_m),
                                 -j_m / 6.0 };
@@ -160,10 +160,10 @@ Flt itpltn_best_v_a(
     Flt f,
     Flt v_abs_max,
     Flt a_abs_max,
-    Flt unknown
+    Flt a_adjust_factor
 ) {
     // 不修改原始数据
-    Flt d_h = x_tar - (x0 + x0 + v0 / f + 0.5f * a0 / (f * f)) / 2.0;
+    Flt d_h = x_tar - (x0 + x0 + v0 / f + 0.5 * a0 / (f * f)) / 2.0;
     int dir = (d_h < 0) ? -1 : 1;
     d_h *= dir;
     v0 *= dir;
@@ -175,7 +175,7 @@ Flt itpltn_best_v_a(
     Flt v_min = std::min(-v_abs_max - v_tar, 0.0);
 
     Flt v_sug = limited_by(std::sqrt(2.0 * a_abs_max * d_h), v_max);
-    Flt a_limited = limited_by((v_sug - v0) * f, a_abs_max * unknown);
+    Flt a_limited = limited_by((v_sug - v0) * f, a_abs_max * a_adjust_factor);
     return a_limited * dir;
 }
 
@@ -190,7 +190,7 @@ Flt itpltn_best_v_j(
     Flt a_abs_max,
     Flt j_abs_max
 ) {
-    Flt d_h = x_tar - (x0 + x0 + v0 / f + 0.5f * a0 / (f * f)) / 2.0;
+    Flt d_h = x_tar - (x0 + x0 + v0 / f + 0.5 * a0 / (f * f)) / 2.0;
     int dir = (d_h < 0) ? -1 : 1;
     d_h *= dir;
     v0 *= dir;
@@ -204,6 +204,7 @@ Flt itpltn_best_v_j(
     auto [v_sug, a_sug] = sug_inv_t(d_h, v0, a0, v_max, a_abs_max, j_abs_max);
     a_sug = -a_sug;
 
+    // 2 tricky things here, no more
     Flt j = itpltn_best_v_a(
         v0,
         a0,
@@ -214,7 +215,7 @@ Flt itpltn_best_v_j(
         f,
         a_abs_max,
         j_abs_max,
-        1.1f
+        1.1
     );
     return j * dir;
 }
@@ -307,7 +308,8 @@ public:
                     this->pre_sent_v[dim],
                     this->pre_sent_a[dim],
                     x_tar_t,
-                    v_tar_t,
+                    // 由于是在目标坐标系下计算自身运动，所以 v_tar 不可太大
+                    limited_by(v_tar_t, this->v_max[dim]),
                     this->fps,
                     this->v_max[dim],
                     this->a_max[dim],

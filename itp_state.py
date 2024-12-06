@@ -6,6 +6,7 @@ from loguru import logger
 m_logger = logger.bind(name="itp_state")
 
 Flt = np.float32
+EPS = 1e-6
 
 
 def arr(*l):
@@ -34,7 +35,7 @@ def itpltn_best_v_a(
     f,
     v_abs_max,
     a_abs_max,
-    i_dont_know_wtf_is_this,
+    a_adjust_factor,
 ):
     # don't modify the original data
     v0 = np.copy(v0)
@@ -62,11 +63,10 @@ def itpltn_best_v_a(
     #     * np.min([np.abs(v_tar), np.sqrt(v0**2 + 2.0 * a_abs_max * np.abs(d_h))]),
     #     0.0,
     # )
-    m_logger.info(f"    v_tar: {v_tar}")
     # 以下基于 -v_tar 坐标
     v_sug = limited_by(np.sqrt(2.0 * a_abs_max * d_h), v_max)
     m_logger.info(f"    v_sug: {v_sug}")
-    a_limited = limited_by((v_sug - v0) * f, a_abs_max * i_dont_know_wtf_is_this)
+    a_limited = limited_by((v_sug - v0) * f, a_abs_max * a_adjust_factor)
     m_logger.info(f"    a_limited: {a_limited}")
     return a_limited * dir
 
@@ -190,11 +190,11 @@ def itpltn_best_v_j(
         a0,
         np.zeros_like(x0),
         v_sug,
-        a_sug * np.clip(v0 / v_sug, 0.5, 1),
+        a_sug * (1.0 if np.abs(v_sug) < EPS else np.clip(v0 / v_sug, 2.0 / 3.0, 1.0)),
         f,
         a_abs_max,
         j_abs_max,
-        i_dont_know_wtf_is_this=1.1,
+        a_adjust_factor=1.1,
     )
     return j * dir
 
@@ -255,10 +255,10 @@ class ItpState:
         ret = []
         st = time.time()
         for i in range(points_needed):
-            m_logger.info(f"[ItpState] itp time: {(time.time() - st) * 1000}")
+            m_logger.info(f"[ItpState] last itp time: {(time.time() - st) * 1000}")
             st = time.time()
             m_logger.info("---")
-            m_logger.info(f"t: {i * 1.0 / self.fps}")
+            m_logger.info(f"delta: {i * 1.0 / self.fps}")
             t_tar = np.ones_like(x_tar) * (first_delta_t + i / self.fps)
             x_tar_t = x_tar + v_tar * t_tar
             v_tar_t = v_tar
@@ -268,7 +268,7 @@ class ItpState:
                 self.pre_sent_v,
                 self.pre_sent_a,
                 x_tar_t,
-                v_tar_t,
+                limited_by(v_tar_t, self.v_max),
                 self.fps,
                 self.v_max,
                 self.a_max,
