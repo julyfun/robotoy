@@ -53,7 +53,7 @@ class LinearKalman:
 
 
 class LinearKalmanOneApi:
-    def __init__(self, dim, dead_time, R, Q):
+    def __init__(self, dim, dead_time, Q, R):
         self.linear_kalman = LinearKalman(dim)
         self.dead_time = dead_time
         self.Q = Q
@@ -74,7 +74,7 @@ def test_linear_kalman_one_api():
     Q = np.eye(dim * 2) * 0.2
     for i in range(dim):
         Q[i + dim, i + dim] = 100.0
-    lkoa = LinearKalmanOneApi(dim, dead_time, R, Q)
+    lkoa = LinearKalmanOneApi(dim, dead_time, Q, R)
     times = np.arange(0, 2, 0.03)
     measurements = np.tile(
         np.maximum(np.abs(times - 1) * 2, 1)[:, np.newaxis], (1, 3)
