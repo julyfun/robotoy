@@ -3,12 +3,17 @@ import time
 import inspect
 from itp_state import arr
 
-from build.itp_state import ItpState
 
-# from itp_state import ItpState
 from matplotlib import pyplot as plt
 from loguru import logger
 import sys
+import os
+
+if 1:
+    # parent
+    sys.path.append(os.path.dirname(os.path.dirname(__file__)))
+    # from itp_state import ItpState
+    from build.itp_state import ItpState
 
 
 logger.remove()
