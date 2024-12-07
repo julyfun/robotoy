@@ -54,6 +54,21 @@ public:
         return ret;
     }
 
+    py::array_t<double> pop_front(const std::string& client_id = "default") {
+        std::lock_guard<std::mutex> lock(mutex);
+        if (id_start.find(client_id) == id_start.end()) {
+            id_start[client_id] = 0;
+        }
+
+        if (id_start[client_id] >= end) {
+            return py::array_t<double>(); // Return an empty array
+        }
+        if (id_start[client_id] < end - cap) {
+            id_start[client_id] = end - cap;
+        }
+        return peek(id_start[client_id]++);
+    }
+
     int get_valid_len(const std::string& client_id = "default") {
         std::lock_guard<std::mutex> lock(mutex);
         if (id_start.find(client_id) == id_start.end()) {
@@ -84,6 +99,7 @@ PYBIND11_MODULE(ring_buffer, m) {
         .def("reset", &RingBuffer::reset)
         .def("push", &RingBuffer::push, py::arg("item"))
         .def("peek", &RingBuffer::peek, py::arg("index"))
+        .def("pop_front", &RingBuffer::pop_front, py::arg("client_id") = "default")
         .def("pull", &RingBuffer::pull, py::arg("client_id") = "default")
         .def("get_valid_len", &RingBuffer::get_valid_len, py::arg("client_id") = "default")
         .def("get_cap", &RingBuffer::get_cap)

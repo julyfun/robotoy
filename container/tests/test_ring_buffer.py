@@ -39,6 +39,19 @@ class TestRingBuffer(unittest.TestCase):
         self.buffer.push(np.copy(data * 2))
         np.testing.assert_array_equal(self.buffer.pull()[0], data * 2)
 
+    def test_pop_front(self):
+        data = np.array([1.0, 2.0, 3.0])
+        self.buffer.push(data * 1)
+        self.buffer.push(data * 2)
+        self.buffer.push(data * 3)
+        self.buffer.push(data * 4)
+        self.buffer.push(data * 5)
+        arr = self.buffer.pop_front()
+        np.testing.assert_array_equal(arr, data * 1)
+        np.testing.assert_array_equal(self.buffer.pop_front(), data * 2)
+        np.testing.assert_array_equal(self.buffer.pull()[0], data * 3)
+        np.testing.assert_array_equal(self.buffer.pop_front(), [])
+
     def test_reset(self):
         data = np.array([1.0, 2.0, 3.0])
         self.buffer.push(data)
