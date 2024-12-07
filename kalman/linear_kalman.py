@@ -53,11 +53,13 @@ class LinearKalman:
 
 
 class LinearKalmanOneApi:
-    def __init__(self, dim, dead_time, Q, R):
+    def __init__(self, dim, dead_time, Qx, Qv, Rx):
         self.linear_kalman = LinearKalman(dim)
         self.dead_time = dead_time
-        self.Q = Q
-        self.R = R
+        self.Q = np.eye(dim * 2) * Qx
+        for i in range(dim):
+            self.Q[i + dim, i + dim] = Qv
+        self.R = np.eye(dim) * Rx
 
     def smoothed(self, t, z):
         if self.linear_kalman.t is None or t - self.linear_kalman.t > self.dead_time:
@@ -69,13 +71,10 @@ class LinearKalmanOneApi:
 
 def test_linear_kalman_one_api():
     dim = 3
-    dead_time = 0.1
-    R = np.eye(dim) * 5.0
-    Q = np.eye(dim * 2) * 0.2
-    for i in range(dim):
-        Q[i + dim, i + dim] = 100.0
-    lkoa = LinearKalmanOneApi(dim, dead_time, Q, R)
+    lkoa = LinearKalmanOneApi(3, 0.5, 0.2, 5, 5)
     times = np.arange(0, 2, 0.03)
+    times = np.hstack([times[times < 0.3], times[times > 1.2]])
+
     measurements = np.tile(
         np.maximum(np.abs(times - 1) * 2, 1)[:, np.newaxis], (1, 3)
     ) + np.random.normal(0, 0.02, (len(times), dim))
