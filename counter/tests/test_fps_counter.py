@@ -14,9 +14,7 @@ cnt = FpsCounter()
 
 while True:
     # 随机选一个 client
-    name = random.choice(client)
-    cnt.count(name)
     for name in client:
-        cnt.check(name)
+        cnt.count_and_check(name)
 
     precise_sleep(0.01)

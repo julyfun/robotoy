@@ -22,3 +22,7 @@ class FpsCounter:
             logger.info(f"{name} fps: {self.count_di[name]}")
             self.time_di[name] = t
             self.count_di[name] = 0
+
+    def count_and_check(self, name):
+        self.count(name)
+        self.check(name)
