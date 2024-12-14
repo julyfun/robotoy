@@ -19,6 +19,10 @@ class Kalman:
         self.x = self.x + K @ y
         self.P = self.P - K @ self.H @ self.P
 
+    # [untested]
+    def predicted(self, F):
+        return F @ self.x
+
 
 class LinearKalman:
     def __init__(self, dim):
@@ -50,6 +54,13 @@ class LinearKalman:
 
     def update(self, z, R):
         self.kalman.update(z, R)
+
+    # [untested]
+    def predicted(self, t):
+        F = np.eye(self.dim * 2)
+        for i in range(self.dim):
+            F[i, i + self.dim] = t - self.t
+        return self.kalman.predicted(F)
 
 
 class LinearKalmanOneApi:
@@ -132,6 +143,37 @@ def test_linear_kalman():
 
     plt.tight_layout()
     plt.show()
+
+
+# [untested]
+class LinearKalmanAliveApi:
+    def __init__(self, dim, dead_time, Qx, Qv, Rx):
+        self.linear_kalman = LinearKalman(dim)
+        self.dead_time = dead_time
+        self.Q = np.eye(dim * 2) * Qx
+        for i in range(dim):
+            self.Q[i + dim, i + dim] = Qv
+        self.R = np.eye(dim) * Rx
+
+    def update(self, t, z):
+        if self.dead(t):
+            self.linear_kalman.init(t, z)
+        self.linear_kalman.predict(t, self.Q)
+        self.linear_kalman.update(z, self.R)
+
+    def get_pos(self, t):
+        if self.dead(t):
+            return None
+        return self.linear_kalman.predicted(t)[:self.linear_kalman.dim]
+
+    def get_state(self, t):
+        if self.dead(t):
+            return None
+        return self.linear_kalman.predicted(t)
+
+    def dead(self, t):
+        return self.linear_kalman.t is None or t - self.linear_kalman.t > self.dead_time
+
 
 
 # 运行测试
