@@ -10,3 +10,9 @@ __pycache__
 build
 .cache
 *.zip
+
+# [spevial]
+save*.json
+*.egg-info
+/tmp
+
