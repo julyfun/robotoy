@@ -2,7 +2,6 @@ from setuptools import setup, Extension
 from setuptools.command.build_ext import build_ext
 import sys
 import os
-import pybind11
 import setuptools
 import argparse
 
@@ -14,6 +13,7 @@ class get_pybind_include(object):
     method can be invoked. """
 
     def __str__(self):
+        import pybind11
         return pybind11.get_include()
 
 class CustomBuildExt(build_ext):
@@ -23,6 +23,21 @@ class CustomBuildExt(build_ext):
         ext_path = os.path.join(os.getcwd(), os.path.basename(ext_path))
         self.build_lib = os.path.dirname(ext_path)
         super().build_extension(ext)
+
+    def copy_extensions_to_source(self):
+        # This is crucial for sdist to include the .so files
+        build_dir = os.path.abspath(self.build_lib)
+        for ext in self.extensions:
+            fullname = self.get_ext_fullname(ext.name)
+            filename = self.get_ext_filename(fullname)
+            src = os.path.join(build_dir, filename)
+            dest = os.path.join(os.path.relpath(self.build_lib, '.'), filename) # Correct destination
+
+            # Ensure the destination directory exists
+            dest_dir = os.path.dirname(dest)
+            if not os.path.exists(dest_dir):
+                os.makedirs(dest_dir)
+            self.copy_file(src, dest)
 
 def cpp_extension(module_name, source_files, include_dirs=None, extra_compile_args=None):
     if include_dirs is None:
@@ -62,20 +77,35 @@ if __name__ == '__main__':
 
     selected_extensions = []
     if hasattr(args, "ex") and args.ex is not None:
-        for ext in args.ex:
-            print(f'ext: {ext}')
-            if ext in available_extensions:
-                selected_extensions.append(available_extensions[ext])
+        if 'all' in args.ex:
+            selected_extensions = list(available_extensions.values())
+        else:
+            for ext in available_extensions.keys():
+                if ext in args.ex:
+                    selected_extensions.append(available_extensions[ext])
     print(f'seleted_extensions: {selected_extensions}')
 
-    sys.argv = [sys.argv[0]] + unknown
+    # [c++]
+    install_requires = []
+    setup_requires = []
+    if any(ext.language == 'c++' for ext in selected_extensions):
+        setup_requires.append('pybind11')
+
     # [setups]
+    sys.argv = [sys.argv[0]] + unknown
 
     setup(
         name='fast_math',
-        version='0.1',
+        version='0.1.6',
+        description='A package for fast mathematical computations using C++ extensions.',
+        long_description=open('README.md').read(),
+        long_description_content_type='text/markdown',
         packages=setuptools.find_packages(),
         extras_require={},
+        setup_requires=setup_requires,
+        install_requires=install_requires,
         ext_modules=selected_extensions,
         cmdclass={'build_ext': CustomBuildExt},
+        package_data={'fast_math': ['**/*.so']},  # IMPORTANT: Include .so files in package data
+        zip_safe=False, # IMPORTANT: Set zip_safe to False
     )

@@ -16,3 +16,6 @@ build
 save*.json
 *.egg-info
 /tmp
+*.whl
+*.tar.gz
+.eggs
