@@ -2,6 +2,8 @@ import time
 import numpy as np
 import scipy.optimize as opt
 from loguru import logger
+from matplotlib import pyplot as plt
+from loguru import logger
 
 m_logger = logger.bind(name="itp_state")
 

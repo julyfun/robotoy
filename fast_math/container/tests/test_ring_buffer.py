@@ -4,9 +4,7 @@ import numpy as np
 import sys
 import os
 
-if 1:
-    sys.path.append(os.path.join(os.path.dirname(__file__), "../.."))
-    from build.ring_buffer import RingBuffer
+from fast_math.container.ring_buffer import RingBuffer
 
 
 class TestRingBuffer(unittest.TestCase):
