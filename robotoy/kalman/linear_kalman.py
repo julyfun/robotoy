@@ -1,6 +1,6 @@
 import numpy as np
 from matplotlib import pyplot as plt
-from fast_math.kalman import Kalman
+from robotoy.kalman import Kalman
 
 class LinearKalman:
     def __init__(self, dim):

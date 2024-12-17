@@ -19,3 +19,4 @@ save*.json
 *.whl
 *.tar.gz
 .eggs
+env

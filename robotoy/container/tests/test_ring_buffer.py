@@ -4,7 +4,7 @@ import numpy as np
 import sys
 import os
 
-from fast_math.container.ring_buffer import RingBuffer
+from robotoy.container.ring_buffer import RingBuffer
 
 
 class TestRingBuffer(unittest.TestCase):

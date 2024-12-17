@@ -1,4 +1,4 @@
-from fast_math.itp_state.itp_state import ItpState
+from robotoy.itp_state.itp_state import ItpState
 import numpy as np
 
 from matplotlib import pyplot as plt

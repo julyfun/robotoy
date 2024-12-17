@@ -59,13 +59,13 @@ if __name__ == '__main__':
     # [db]
     available_extensions = {
         'itp_state': cpp_extension(
-            'fast_math.itp_state.itp_state',
-            ['fast_math/itp_state/itp_state.cpp'],
+            'robotoy.itp_state.itp_state',
+            ['robotoy/itp_state/itp_state.cpp'],
             extra_compile_args=['-std=c++17']
         ),
         'ring_buffer': cpp_extension(
-            'fast_math.container.ring_buffer',
-            ['fast_math/container/ring_buffer.cpp'],
+            'robotoy.container.ring_buffer',
+            ['robotoy/container/ring_buffer.cpp'],
             extra_compile_args=['-std=c++17']
         ),
     }
@@ -95,7 +95,7 @@ if __name__ == '__main__':
     sys.argv = [sys.argv[0]] + unknown
 
     setup(
-        name='fast_math',
+        name='robotoy',
         version='0.1.6',
         description='A package for fast mathematical computations using C++ extensions.',
         long_description=open('README.md').read(),
@@ -106,6 +106,6 @@ if __name__ == '__main__':
         install_requires=install_requires,
         ext_modules=selected_extensions,
         cmdclass={'build_ext': CustomBuildExt},
-        package_data={'fast_math': ['**/*.so']},  # IMPORTANT: Include .so files in package data
+        package_data={'robotoy': ['**/*.so']},  # IMPORTANT: Include .so files in package data
         zip_safe=False, # IMPORTANT: Set zip_safe to False
     )
