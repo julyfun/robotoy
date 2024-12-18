@@ -53,6 +53,7 @@ class LinearKalmanOneApi:
     def smoothed(self, t, z):
         if self.linear_kalman.t is None or t - self.linear_kalman.t > self.dead_time:
             self.linear_kalman.init(t, z)
+        # [TODO] else preict
         self.linear_kalman.predict(t, self.Q)
         self.linear_kalman.update(z, self.R)
         return self.linear_kalman.kalman.x[: self.linear_kalman.dim]
