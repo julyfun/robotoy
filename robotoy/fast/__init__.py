@@ -2,9 +2,25 @@ from typing import Tuple
 import numpy as np
 from scipy.spatial.transform import Rotation as R
 
-XyzXyzw = Tuple[np.array, np.array]
+XyzXyzw = Tuple[np.ndarray, np.ndarray]
 
-def matrix_from_xyz_xyzw(trans: XyzXyzw) -> np.array:
+# don't np.vectorize it.
+def to_degrees(x):
+    return x / np.pi * 180.0
+
+
+def to_radians(x):
+    return x / 180.0 * np.pi
+
+
+def normalized(v: np.ndarray):
+    norm = np.linalg.norm(v)
+    if norm == 0:
+        return v
+    return v / norm
+
+
+def matrix_from_xyz_xyzw(trans: XyzXyzw) -> np.ndarray:
     # Create a 4x4 identity matrix
     xyz, xyzw = trans
     se3_matrix = np.eye(4)
