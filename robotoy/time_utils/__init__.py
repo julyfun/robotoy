@@ -48,7 +48,27 @@ class PassiveTimer:
             self.di[channel] = max(time + 0.5 * interval, self.di[channel] + interval)
 
 
+class Once:
+    def __init__(self):
+        self.s = set()
+
+    def try_act(self, act, channel='default'):
+        if channel not in self.s:
+            self.s.add(channel)
+            act()
+            return
+
+
 if __name__ == "__main__":
+    once = Once()
+    once.try_act(lambda: print('1'))
+    once.try_act(lambda: print('1'))
+    once.try_act(lambda: print('2'), '2')
+    once.try_act(lambda: print('2'), '2')
+    once.try_act(lambda: print('3'), '3')
+    once.try_act(lambda: print('3'), '3')
+    once.try_act(lambda: print('3'), '3')
+
     from robotoy.counter import FpsCounter
     cnt = FpsCounter()
     sleep_timer(0.100, lambda: print('ok') or cnt.count_and_check())
