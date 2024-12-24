@@ -1,28 +1,30 @@
 from loguru import logger
 import time
+from robotoy.time_utils import PassiveTimer
 
 class FpsCounter:
     def __init__(self):
-        self.time_di = dict()
-        self.count_di = dict()
+        self.di = dict()
 
-    def count(self, name):
-        if name not in self.time_di:
-            self.time_di[name] = time.time()
-            self.count_di[name] = 0
-        self.count_di[name] += 1
+    def count(self, channel="default"):
+        if channel not in self.di:
+            self.di[channel] = [0, PassiveTimer()]
+        self.di[channel][0] += 1
 
-    def check(self, name):
-        t = time.time()
-        if name not in self.time_di:
-            self.time_di[name] = t
-            self.count_di[name] = 0
+    def check(self, channel="default"):
+        if channel not in self.di:
+            self.di[channel] = [0, PassiveTimer()]
             return
-        if t - self.time_di[name] > 1:
-            logger.info(f"{name} fps: {self.count_di[name]}")
-            self.time_di[name] = t
-            self.count_di[name] = 0
 
-    def count_and_check(self, name):
-        self.count(name)
-        self.check(name)
+        def fn():
+            logger.info(f"{channel} fps: {self.di[channel][0]}")
+            self.di[channel][0] = 0
+        self.di[channel][1].try_act(
+            time.time(),
+            1.0, 
+            fn
+        )
+
+    def count_and_check(self, channel="default"):
+        self.count(channel)
+        self.check(channel)
