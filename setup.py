@@ -96,7 +96,7 @@ if __name__ == '__main__':
 
     setup(
         name='robotoy',
-        version='0.1.6',
+        version='0.2',
         description='A package for fast mathematical computations using C++ extensions.',
         long_description=open('README.md').read(),
         long_description_content_type='text/markdown',

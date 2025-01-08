@@ -1,27 +1,56 @@
-from typing import Any, Callable, Dict, Tuple, Union, TypeVar, Type, cast, overload, Generic
-from functools import wraps
+from typing import (
+    Any,
+    Callable,
+    Dict,
+    Tuple,
+    Union,
+    TypeVar,
+    Type,
+    cast,
+    overload,
+    Generic,
+)
 from dataclasses import dataclass
 
-T = TypeVar('T')
-R = TypeVar('R')
+T = TypeVar("T")
+R = TypeVar("R")
+
 
 @dataclass(frozen=True)
 class Keywords:
     """Container for keyword arguments."""
+
     kwargs: Dict[str, Any]
+
 
 class Here:
     """Placeholder token for pipe argument substitution."""
-    pass
+
+    def __init__(self, func: Callable[[Any], Any] = lambda x: x):
+        self.func = func
+
 
 class Unpipe:
     """Special type to signal value extraction at the end of pipe chain."""
+
     pass
+
+
+def typed_unpipe_v0_1(target_type: Type[T]) -> Callable[[Any], T]:
+    """Return a function that casts input to the specified type."""
+
+    def _unpipe(value: Any) -> T:
+        return cast(T, value)
+
+    return _unpipe
+
 
 class UnpipeAs(Generic[T]):
     """Special type to signal value extraction at the end of pipe chain with specific type."""
+
     def __init__(self, type_: Type[T]):
         self.type = type_
+
 
 class Pipe:
     """
@@ -46,7 +75,9 @@ class Pipe:
         if not callable(func):
             raise TypeError(f"Expected a callable, got {type(func).__name__}")
 
-    def _substitute_here(self, args: Tuple[Any, ...], kwargs: Dict[str, Any]) -> Tuple[Tuple[Any, ...], Dict[str, Any]]:
+    def _substitute_here(
+        self, args: Tuple[Any, ...], kwargs: Dict[str, Any]
+    ) -> Tuple[Tuple[Any, ...], Dict[str, Any]]:
         """
         Substitute 'here' placeholders with the current pipe value.
 
@@ -59,14 +90,14 @@ class Pipe:
         # Check for 'here' in positional arguments
         here_in_args = False
         for i, arg in enumerate(modified_args):
-            if arg is here:
-                modified_args[i] = self._value
+            if isinstance(arg, Here):
+                modified_args[i] = arg.func(self._value)
                 here_in_args = True
 
         # Check for 'here' in keyword arguments
         for k, v in modified_kwargs.items():
-            if v is here:
-                modified_kwargs[k] = self._value
+            if isinstance(v, Here):
+                modified_kwargs[k] = v.func(self._value)
                 here_in_args = True
 
         # If 'here' wasn't found anywhere, prepend value to args
@@ -76,14 +107,14 @@ class Pipe:
         return tuple(modified_args), modified_kwargs
 
     @overload
-    def __or__(self, other: UnpipeAs[T]) -> T:
-        ...
+    def __or__(self, other: UnpipeAs[T]) -> T: ...
 
     @overload
-    def __or__(self, other: Union[Callable, Tuple, Unpipe]) -> Union['Pipe', Any]:
-        ...
+    def __or__(self, other: Union[Callable, Tuple, Unpipe]) -> Union["Pipe", Any]: ...
 
-    def __or__(self, other: Union[Callable, Tuple, Unpipe, UnpipeAs[T]]) -> Union['Pipe', Any, T]:
+    def __or__(
+        self, other: Union[Callable, Tuple, Unpipe, UnpipeAs[T]]
+    ) -> Union["Pipe", Any, T]:
         """
         Implementation of the pipe operator (|).
 
@@ -98,7 +129,9 @@ class Pipe:
 
         if isinstance(other, UnpipeAs):
             if not isinstance(self._value, other.type):
-                raise TypeError(f"Expected pipe value to be {other.type}, got {type(self._value)}")
+                raise TypeError(
+                    f"Expected pipe value to be {other.type}, got {type(self._value)}"
+                )
             return cast(other.type, self._value)
 
         if isinstance(other, tuple):
@@ -123,17 +156,21 @@ class Pipe:
     def __repr__(self) -> str:
         return f"Pipe({repr(self._value)})"
 
+
 def kw(**kwargs) -> Keywords:
     """Convenience function to create Keywords instances."""
     return Keywords(kwargs)
+
 
 class PipeStart:
     """
     Special class to handle the initial value of a pipe chain
     when using the empty pipe() function.
     """
+
     def __or__(self, other: Any) -> Pipe:
         return Pipe(other)
+
 
 pipe = PipeStart()
 
@@ -143,6 +180,9 @@ unpipe = Unpipe()
 
 # Example usage:
 if __name__ == "__main__":
+    import sys
+    from io import StringIO
+
     # Basic function composition
     def add(x: int) -> int:
         return x + 10
@@ -151,34 +191,20 @@ if __name__ == "__main__":
         return x * y
 
     # Example pipelines
-    result = (
-        Pipe(5)
-        | add
-        | (multiply, 2)
-        | str
-        | print
-    )
+    result = Pipe(5) | add | (multiply, 2) | str | print
 
     # Using keywords and here placeholder
     numbers = [3, 1, 4, 1, 5, 9]
-    (
-        Pipe(numbers)
-        | (sorted, kw(reverse=True))
-        | print
-    )
+    (Pipe(numbers) | (sorted, kw(reverse=True)) | print)
 
     # Multiple here placeholders
     def sum_three(x: int, y: int, z: int) -> int:
         return x + y + z
 
-    (
-        Pipe(1)
-        | (sum_three, here, here, here)
-        | print
-    )  # Outputs: 3
-
+    (Pipe(1) | (sum_three, here, here, here) | print)  # Outputs: 3
 
     from typing import List
+
     nums = [1, 2, 3, 4, 5, 10, 20, 23, 25, 27]
     filtered = (
         pipe
@@ -186,11 +212,29 @@ if __name__ == "__main__":
         | (filter, lambda x: x % 2 == 0, here)
         | (filter, lambda x: x <= 10, here)
         | list
-        | UnpipeAs(List) # or just unpipe
+        | UnpipeAs(List)  # or just unpipe
     )
-    print(filtered) # Outputs: [2, 4, 10]
+    print(filtered)  # Outputs: [2, 4, 10]
 
+    sys.stdin = StringIO("1 2 3 5")
+    (
+        pipe
+        | input().split()
+        | (map, int, here)
+        | list
+        | (sorted, kw(reverse=True))
+        | print
+    )
 
-    pipe | input().split() | (map, int, here) | list | (sorted, kw(reverse=True)) | print
+    sys.stdin = StringIO("1 2 3 5")
+    (
+        pipe
+        | input().split()
+        | (map, int, Here(lambda x: [y + "1" for y in x]))
+        | list
+        | (sorted, kw(reverse=True))
+        | print
+    )
+
     # same as:
     # print(sorted(list(map(int, input().split()))), reverse=True))
