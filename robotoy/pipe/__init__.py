@@ -43,11 +43,17 @@ if __name__ == "__main__":
         return value * y
 
     x1 = (
-        Pipe(input().split())
+        Pipe([1, 2, 3])
         | (lambda x: list(map(int, x)))
         | (lambda x: sorted(x, reverse=True))
-        | (lambda x: x[0])
-        | add_one
         | unpipe
     )
     print(x1)
+
+    print(
+        n := Pipe(range(1, 11))
+        | (lambda x: filter(lambda x: x % 2 == 0, x))
+        | (lambda x: map(lambda x: x**2, x))
+        | list
+        | unpipe
+    )
