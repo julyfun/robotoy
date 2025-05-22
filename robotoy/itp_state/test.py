@@ -1,8 +1,10 @@
 import numpy as np
-from itp_state import ItpState, arr
+from itp_state import ItpState
 from matplotlib import pyplot as plt
 from loguru import logger
 import sys
+
+arr = np.array
 
 logger.remove()
 logger.add(sys.stdout, filter=lambda r: r["extra"].get("name") in ["itp_state"])

@@ -20,3 +20,6 @@ save*.json
 *.tar.gz
 .eggs
 env
+
+.venv
+*.pdf

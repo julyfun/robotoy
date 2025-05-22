@@ -1,0 +1,3 @@
+matplotlib
+loguru
+PyQt5==5.15.10

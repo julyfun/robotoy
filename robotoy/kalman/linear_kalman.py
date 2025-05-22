@@ -4,7 +4,7 @@ from robotoy.kalman import Kalman
 
 class LinearKalman:
     def __init__(self, dim):
-        # kalman.x: x, v, x, v, ...
+        # kalman.x: x, y, z, vx, vy, vz...
         # H when dim = 3:
         # 1, 0, 0, 0, 0, 0
         # 0, 1, 0, 0, 0, 0
@@ -22,8 +22,11 @@ class LinearKalman:
         self.kalman.P = np.zeros((self.dim * 2, self.dim * 2))
         for i in range(self.dim):
             self.kalman.P[i, i] = 1e6
+        # [TODO] set velocity var in P
+
 
     def predict(self, t, Q):
+        # [TODO] check t
         F = np.eye(self.dim * 2)
         for i in range(self.dim):
             F[i, i + self.dim] = t - self.t
