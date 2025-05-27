@@ -9,8 +9,13 @@ add_definitions(-Wall)
 
 # [exe]
 
-add_executable(${PROJECT_NAME} "test.cpp")
+add_executable(${PROJECT_NAME} "example.cpp")
 
-# [dep.system]
+# [dep.system.Eigen3]
 find_package(Eigen3 REQUIRED)
 target_include_directories(${PROJECT_NAME} PUBLIC ${EIGEN3_INCLUDE_DIRS})
+
+# [dep.system.ceres]
+find_package(Ceres REQUIRED)
+target_include_directories(${PROJECT_NAME} PUBLIC ${CERES_INCLUDE_DIRS})
+target_link_libraries(${PROJECT_NAME} ${CERES_LIBRARIES})

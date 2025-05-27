@@ -13,6 +13,10 @@ def to_radians(x):
     return x / 180.0 * np.pi
 
 
+def vec(*x):
+    return np.array(x)
+
+
 def normalized(v: np.ndarray):
     norm = np.linalg.norm(v)
     if norm == 0:

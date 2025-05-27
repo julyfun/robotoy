@@ -1,15 +1,18 @@
 //! Don't omit `this->`
+#ifndef KALMAN_FILTER_CPP_KALMAN_HPP
+#define KALMAN_FILTER_CPP_KALMAN_HPP
+
 #include <cmath>
 #include <iostream>
 
 #include <Eigen/Core>
 #include <Eigen/LU>
 
-namespace kalman {
+namespace kalman_filter_cpp::kalman {
 
 // Pass dimention to template param
 template<int n_x, int n_z>
-class Kalman {
+struct Kalman {
 public:
     using MatX1 = Eigen::Matrix<double, n_x, 1>;
     using MatXX = Eigen::Matrix<double, n_x, n_x>;
@@ -51,7 +54,7 @@ private:
 
 // State in the form of [x, y, z, vx, vy, vz..]
 template<int dim>
-class LinearKalman {
+struct LinearKalman {
 public:
     static constexpr int n_x = dim * 2;
     static constexpr int n_z = dim;
@@ -116,7 +119,7 @@ public:
 };
 
 template<int dim>
-class LinearKalmanOneApi {
+struct LinearKalmanOneApi {
 public:
     static constexpr int n_x = dim * 2;
     static constexpr int n_z = dim;
@@ -153,4 +156,6 @@ public:
     MatZZ R;
 };
 
-} // namespace kalman
+} // namespace kalman_filter_cpp::kalman
+
+#endif
