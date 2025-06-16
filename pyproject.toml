@@ -1,0 +1,25 @@
+# not finished
+[project]
+name = "robotoy"
+version = "0.2.1"
+requires-python = ">=3.7"
+description = "A robot helper"
+readme = "README.md"
+
+dependencies = ["numpy", "matplotlib"]
+
+[build-system]
+requires = ["uv", "pybind11", "setuptools"]
+build-backend = "setuptools.build_meta"
+
+[project.optional-dependencies]
+torch = ["torch>=2.2.1"]
+
+[tool.setuptools]
+packages = ["robotoy"]
+
+[tool.setuptools.package-data]
+robotoy = ["**/*.so"]
+
+[tool.setuptools.cmdclass]
+build_ext = "setup.CustomBuildExt"
