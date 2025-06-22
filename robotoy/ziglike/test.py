@@ -51,3 +51,9 @@ def test(func):
 def enable_testing():
     """Call this in your main script to enable test execution"""
     _runner.run_tests()
+
+# [run]
+
+def run(func):
+    func()
+
